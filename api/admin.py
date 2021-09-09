@@ -5,23 +5,30 @@ from .models import *
 import nested_admin
 
 
-class StatisticsAdmin(admin.TabularInline):
+class ErrorAdmin(nested_admin.NestedTabularInline):
+    model = ErrorStatistics
+
+
+@admin.register(Statistics)
+class StatisticsAdmin(nested_admin.NestedModelAdmin):
     model = Statistics
+    inlines = [ErrorAdmin, ]
 
 
 class ProfileAdmin(admin.TabularInline):
     model = Profile
 
 
+@admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
     model = CustomUser
-    list_display = ("first_name", 'last_name', 'email', "created_at", "updated_at")
+    list_display = ("first_name", 'last_name', 'email', "is_teacher", "created_at", "updated_at")
     list_filter = ('email', 'is_staff', 'is_active',)
     fieldsets = (
         (None, {'fields': ('first_name', "last_name", 'email', 'password',)}),
-        ('Permissions', {'fields': ('is_staff', 'is_active')}),
+        ('Permissions', {'fields': ('is_staff', 'is_active', "is_teacher")}),
     )
     add_fieldsets = (
         (None, {
@@ -31,10 +38,7 @@ class CustomUserAdmin(UserAdmin):
     )
     search_fields = ('email',)
     ordering = ('email',)
-    inlines = (ProfileAdmin, StatisticsAdmin)
-
-
-admin.site.register(CustomUser, CustomUserAdmin)
+    inlines = [ProfileAdmin, ]
 
 
 class CommentAdmin(nested_admin.NestedTabularInline):

@@ -1,5 +1,30 @@
 from . import models
 from rest_framework import serializers
+from drf_extra_fields.fields import Base64ImageField
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    avatar = Base64ImageField()
+
+    class Meta:
+        model = models.Profile
+        fields = ("avatar", )
+
+
+class UserMeSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(source="profile.avatar", read_only=True)
+    email = serializers.EmailField(read_only=True)
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    is_teacher = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = models.CustomUser
+        fields = ("first_name",
+                  "last_name",
+                  "email",
+                  "is_teacher",
+                  "avatar")
 
 
 class AuthorSerializer(serializers.ModelSerializer):
@@ -8,55 +33,60 @@ class AuthorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.CustomUser
-        fields = ("id", "first_name", "last_name", "email", "avatar")
+        fields = ("id",
+                  "first_name",
+                  "last_name",
+                  "email",
+                  "avatar")
 
 
-class ExamSerializer(serializers.ModelSerializer):
-    """Только exercise"""
-
-    class Meta:
-        model = models.Exam
-        fields = "__all__"
-
-
-class ExamListSerializer(serializers.ModelSerializer):
-    """Сериалайзер для списка Exercise"""
-
+class CommentForExamSerializer(serializers.ModelSerializer):
+    """
+    Серилайзер для Comment с минимальной информацией
+    об авторе для Exam retrive
+    """
     author = AuthorSerializer()
 
     class Meta:
-        model = models.Exam
-        fields = ('id', "author", "title", "classroom", "subject", "publish_time",
-                  "edit_time",)
+        model = models.Comment
+        fields = ("id",
+                  "author",
+                  "text",
+                  "publish_time",
+                  "edit_time")
 
 
-class ExamRetrieveSerializer(serializers.ModelSerializer):
-    """Сериалайзер для Exercise с полной информацией, но без Task"""
-    author = AuthorSerializer()
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
-        model = models.Exam
-        fields = ('id', "author", "title", "classroom", "description", "subject", "publish_time",
-                  "edit_time",)
+        model = models.Comment
+        fields = ("id",
+                  "author",
+                  "text",
+                  "exam",
+                  "publish_time",
+                  "edit_time", )
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation["count_task"] = instance.tasks.count()
-        return representation
 
-
-class AnswerReadSerializer(serializers.ModelSerializer):
+class AnswerSerializer(serializers.ModelSerializer):
+    """Серилайзер для Answer"""
     class Meta:
         model = models.Answer
-        fields = ("id", "text", "is_correct")
+        fields = ("id",
+                  "text",
+                  "is_correct")
 
 
-class TaskReadSerializer(serializers.ModelSerializer):
-    answers = AnswerReadSerializer(many=True)
+class TaskSerializer(serializers.ModelSerializer):
+    """Сериалайзер для Task"""
+    answers = AnswerSerializer(many=True)
 
     class Meta:
         model = models.Task
-        fields = ('id', 'question', 'answers')
+        fields = ('id',
+                  'question',
+                  'answers')
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -64,61 +94,60 @@ class TaskReadSerializer(serializers.ModelSerializer):
         return representation
 
 
-class ExamWithTaskRetrieveSerializer(serializers.ModelSerializer):
-    tasks = TaskReadSerializer(many=True)
+class ExamListSerializer(serializers.ModelSerializer):
+    """Сериалайзер для списка Exercise"""
     author = AuthorSerializer()
 
     class Meta:
         model = models.Exam
-        fields = ('id', "author", "title", "classroom", "subject", "publish_time", "edit_time",
-                  "tasks",)
+        fields = ('id',
+                  "author",
+                  "title",
+                  "classroom",
+                  "subject",
+                  "publish_time",
+                  "edit_time",)
 
 
-"""
-        Для тестирования
-{
-  "title": "string",
-  "classroom": 0,
-  "subject": "al",
-  "description": "Описание",
-  "tasks": [
-     {
-       "question": "Вопрос?",
-       "answers": [
-          {
-             "text": "text",
-             "is_correct": true
-          }
-        ]
-     }
-  ]
-}
-"""
-
-
-class AnswerWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Answer
-        fields = ("id", "text", "is_correct")
-
-
-class TaskWriteSerializer(serializers.ModelSerializer):
-    answers = AnswerWriteSerializer(many=True)
-
-    class Meta:
-        model = models.Task
-        fields = ("id", 'question', "answers")
-
-
-class ExamCreateSerializer(serializers.ModelSerializer):
-    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    tasks = TaskWriteSerializer(many=True)
+class ExamRetrieveSerializer(serializers.ModelSerializer):
+    """Сериалайзер для Exercise с полной информацией, но без Task"""
+    author = AuthorSerializer()
+    comments = CommentForExamSerializer(many=True)
 
     class Meta:
         model = models.Exam
-        fields = ('id', "author", "title", "classroom", "subject",
-                  "description", "publish_time", "edit_time", "tasks",)
+        fields = ('id',
+                  "author",
+                  "title",
+                  "classroom",
+                  "description",
+                  "subject",
+                  "publish_time",
+                  "edit_time",
+                  "comments")
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["count_task"] = instance.tasks.count()
+        return representation
+
+
+class ExamSerializer(serializers.ModelSerializer):
+    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    tasks = TaskSerializer(many=True)
+
+    class Meta:
+        model = models.Exam
+        fields = ('id',
+                  "author",
+                  "title",
+                  "classroom",
+                  "subject",
+                  "description",
+                  "publish_time",
+                  "edit_time",
+                  "tasks",)
 
     def create(self, validated_data):
         tasks = validated_data.pop("tasks")
@@ -131,4 +160,121 @@ class ExamCreateSerializer(serializers.ModelSerializer):
         return exam
 
     def update(self, instance, validated_data):
-        pass
+        tasks_data = validated_data.pop("tasks")
+        tasks = instance.tasks.all()
+        tasks = list(tasks)
+        instance.title = validated_data.get("title", instance.title)
+        instance.classroom = validated_data.get("classroom", instance.classroom)
+        instance.subject = validated_data.get("subject", instance.subject)
+        instance.description = validated_data.get("description", instance.description)
+        instance.save()
+        for task_data in tasks_data:
+            task = tasks.pop(0)
+            answers_data = task_data.pop("answers")
+            answers = task.answers.all()
+            answers = list(answers)
+            task.question = task_data.get("question", task.question)
+            task.save()
+            for answer_data in answers_data:
+                answer = answers.pop(0)
+                answer.text = answer_data.get("text", answer.text)
+                answer.is_correct = answer_data.get("is_correct", answer.is_correct)
+                answer.save()
+        return instance
+
+# {
+#   "title": "string",
+#   "classroom": 0,
+#   "subject": "al",
+#   "description": "Описание",
+#   "tasks": [
+#      {
+#        "question": "Вопрос?",
+#        "answers": [
+#           {
+#              "text": "text",
+#              "is_correct": true
+#           }
+#         ]
+#      }
+#   ]
+# }
+
+# {
+#     "id": 1,
+#     "title": "Название",
+#     "classroom": 4,
+#     "subject": "en",
+#     "description": "123",
+#     "tasks": [
+#         {
+#             "id": 1,
+#             "question": "Как называется",
+#             "answers": [
+#                 {
+#                     "id": 1,
+#                     "text": "1",
+#                     "is_correct": true
+#                 },
+#                 {
+#                     "id": 2,
+#                     "text": "2",
+#                     "is_correct": false
+#                 },
+#                 {
+#                     "id": 3,
+#                     "text": "3",
+#                     "is_correct": true
+#                 }
+#             ]
+#         },
+#         {
+#             "id": 2,
+#             "question": "44444",
+#             "answers": [
+#                 {
+#                     "id": 4,
+#                     "text": "9999999999",
+#                     "is_correct": false
+#                 },
+#                 {
+#                     "id": 5,
+#                     "text": "7",
+#                     "is_correct": true
+#                 },
+#                 {
+#                     "id": 6,
+#                     "text": "8",
+#                     "is_correct": false
+#                 },
+#                 {
+#                     "id": 7,
+#                     "text": "9999999999999999",
+#                     "is_correct": false
+#                 }
+#             ]
+#         }
+#     ]
+# }
+
+
+class StatisticsSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = models.Statistics
+        fields = ("id",
+                  "user",
+                  "exam",
+                  "grade",
+                  "total")
+
+    def create(self, validated_data):
+        validated_data["grade"] = 0
+        stat = models.Statistics.objects.create(**validated_data)
+        return stat
+
+    def update(self, instance, validated_data):
+        instance.grade = validated_data.get("grade", instance.grade)
+        instance.save()
+        return instance

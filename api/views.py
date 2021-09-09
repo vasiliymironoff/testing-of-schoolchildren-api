@@ -1,6 +1,7 @@
 from rest_framework import viewsets
-from .models import Exam
+from .models import Exam, Statistics, Profile, Comment
 from rest_framework import mixins
+from .permissions import IsTeacherUser
 from . import serializers
 
 
@@ -19,12 +20,38 @@ class ExamWithTaskViewSet(viewsets.GenericViewSet,
                           mixins.CreateModelMixin,
                           mixins.UpdateModelMixin,
                           mixins.DestroyModelMixin):
-    queryset = Exam.objects.all()
+    permission_classes = [IsTeacherUser, ]
+    serializer_class = serializers.ExamSerializer
 
-    def get_serializer_class(self):
+    def get_queryset(self):
         if self.action == "retrieve":
-            return serializers.ExamWithTaskRetrieveSerializer
-        elif self.action in ['create', 'update']:
-            return serializers.ExamCreateSerializer
+            return Exam.objects.all()
         else:
-            return serializers.ExamSerializer
+            return Exam.objects.all()
+
+
+class CommentViewSet(viewsets.GenericViewSet,
+                     mixins.CreateModelMixin,
+                     mixins.UpdateModelMixin,
+                     mixins.DestroyModelMixin):
+    serializer_class = serializers.CommentSerializer
+
+    def get_queryset(self):
+        return Comment.objects.filter(author=self.request.user)
+
+
+class StatisticsViewSet(viewsets.GenericViewSet,
+                        mixins.ListModelMixin,
+                        mixins.CreateModelMixin,
+                        mixins.UpdateModelMixin):
+    serializer_class = serializers.StatisticsSerializer
+
+    def get_queryset(self):
+        return Statistics.objects.filter(user=self.request.user)
+
+
+class ProfileViewSet(viewsets.GenericViewSet,
+                     mixins.UpdateModelMixin):
+    serializer_class = serializers.ProfileSerializer
+    queryset = Profile.objects.all()
+

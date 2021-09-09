@@ -105,6 +105,11 @@ SIMPLE_JWT = {
    'AUTH_HEADER_TYPES': ('JWT',),
 }
 
+DJOSER = {
+    'SERIALIZERS': {
+        'current_user': 'api.serializers.UserMeSerializer',
+    },
+}
 
 AUTH_USER_MODEL = "api.CustomUser"
 # Password validation
@@ -145,6 +150,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_DIR = os.path.join(BASE_DIR, "static")
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 

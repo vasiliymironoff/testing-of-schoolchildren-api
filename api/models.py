@@ -44,7 +44,7 @@ class CustomUser(AbstractUser):
     first_name = models.CharField("Имя", max_length=100)
     last_name = models.CharField("Фамилия", max_length=100)
     email = models.EmailField('Email', unique=True)
-    is_teacher = models.BooleanField("Учитель", default=False)
+    is_teacher = models.BooleanField("Учитель")
     created_at = models.DateTimeField("Дата создания аккаунта", auto_now_add=True)
     updated_at = models.DateTimeField("Дата редактирования аккаунта", auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -52,7 +52,7 @@ class CustomUser(AbstractUser):
     is_admin = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name", "last_name"]
+    REQUIRED_FIELDS = ["first_name", "last_name", "is_teacher"]
 
     objects = CustomUserManager()
 
@@ -80,8 +80,6 @@ class Profile(models.Model):
     user = models.OneToOneField(CustomUser, verbose_name="Пользователь", related_name="profile",
                                 on_delete=models.CASCADE)
     avatar = models.ImageField("Аватарка", upload_to="user/", null=True, blank=True)
-    classroom = models.SmallIntegerField("Класс", null=True, blank=True)
-    letter = models.CharField("Буква класса", max_length=1, null=True, blank=True)
 
     class Meta:
         verbose_name = "Профиль"
@@ -109,9 +107,22 @@ class Exam(models.Model):
         ("li", "Литература"),
         ("ob", "ОБЖ"),
     ]
+    CLASSROOM = [
+        (1, "1 класс"),
+        (2, "2 класс"),
+        (3, "3 класс"),
+        (4, "4 класс"),
+        (5, "5 класс"),
+        (6, "6 класс"),
+        (7, "7 класс"),
+        (8, "8 класс"),
+        (9, "9 класс"),
+        (10, "10 класс"),
+        (11, "11 класс"),
+    ]
     author = models.ForeignKey(CustomUser, verbose_name="Учитель", related_name="exams", on_delete=models.CASCADE)
     title = models.CharField("Тема", max_length=300)
-    classroom = models.SmallIntegerField("Класс")
+    classroom = models.SmallIntegerField("Класс", choices=CLASSROOM)
     subject = models.CharField("Предмет", max_length=2, choices=SUBJECT_CHOICES)
     description = models.TextField("Описание")
     publish_time = models.DateTimeField("Время публикации", auto_now_add=True)
@@ -157,6 +168,8 @@ class Comment(models.Model):
     author = models.ForeignKey(CustomUser, verbose_name="Комментатор", related_name="comments",
                                on_delete=models.CASCADE)
     text = models.TextField("Текст")
+    publish_time = models.DateTimeField("Время публикации", auto_now_add=True)
+    edit_time = models.DateTimeField("Время редактирования", auto_now=True)
 
     class Meta:
         verbose_name = "Комметарий"
@@ -180,4 +193,17 @@ class Statistics(models.Model):
         verbose_name_plural = "Статистика"
 
     def __str__(self):
-        return self.exercise.title
+        return self.exam.title
+
+
+class ErrorStatistics(models.Model):
+    statistics = models.ForeignKey(Statistics, verbose_name="Ошибки", related_name="errors",
+                                   on_delete=models.CASCADE)
+    question = models.TextField("Вопрос")
+
+    class Meta:
+        verbose_name = "Ошибка"
+        verbose_name_plural = "Ошибки"
+
+    def __str__(self):
+        return self.question
