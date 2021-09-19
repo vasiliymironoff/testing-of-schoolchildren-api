@@ -13,6 +13,7 @@ class ErrorAdmin(nested_admin.NestedTabularInline):
 class StatisticsAdmin(nested_admin.NestedModelAdmin):
     model = Statistics
     inlines = [ErrorAdmin, ]
+    list_display = ("user", "start_time", "end_time")
 
 
 class ProfileAdmin(admin.TabularInline):

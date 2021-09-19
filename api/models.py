@@ -132,7 +132,7 @@ class Exam(models.Model):
     class Meta:
         verbose_name = "Контрольная"
         verbose_name_plural = "Контрольные"
-        ordering = ("publish_time",)
+        ordering = ("-publish_time",)
 
     def __str__(self):
         return self.title
@@ -141,6 +141,7 @@ class Exam(models.Model):
 class Task(models.Model):
     exam = models.ForeignKey(Exam, verbose_name="Упражнение", related_name="tasks", on_delete=models.CASCADE)
     question = models.TextField("Вопрос")
+    scores = models.SmallIntegerField("Максимальное количество баллов")
 
     class Meta:
         verbose_name = "Задание"
@@ -172,6 +173,7 @@ class Comment(models.Model):
     edit_time = models.DateTimeField("Время редактирования", auto_now=True)
 
     class Meta:
+        ordering = ("-publish_time",)
         verbose_name = "Комметарий"
         verbose_name_plural = "Комментарии"
 
@@ -189,6 +191,7 @@ class Statistics(models.Model):
     end_time = models.DateTimeField("Конец выполнения", auto_now=True)
 
     class Meta:
+        ordering = ("-start_time",)
         verbose_name = "Статистика"
         verbose_name_plural = "Статистика"
 

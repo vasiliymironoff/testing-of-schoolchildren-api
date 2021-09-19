@@ -5,14 +5,16 @@ from django.urls import path, include
 
 urlpatterns = [
     url(r'^auth/', include('djoser.urls')),
-    url(r'^auth/', include('djoser.urls.jwt')),
+    url(r'^auth/', include('djoser.urls.authtoken')),
 ]
 
 router = DefaultRouter()
 router.register('exams', views.ExamViewSet)
 router.register('exams-detail', views.ExamWithTaskViewSet, basename="Exam")
 router.register("statistics", views.StatisticsViewSet, basename="Statistics")
-router.register("comment", views.CommentViewSet, basename="Comment")
-router.register("profile", views.ProfileViewSet, basename="Profile")
+router.register("comments", views.CommentViewSet, basename="Comment")
+router.register("profiles", views.ProfileViewSet, basename="Profile")
+router.register("tasks", views.TaskViewSet, basename="Task")
+router.register("answers", views.AnswerViewSet, basename="Answer")
 urlpatterns += router.urls
 

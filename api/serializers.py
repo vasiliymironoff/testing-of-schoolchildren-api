@@ -36,7 +36,6 @@ class AuthorSerializer(serializers.ModelSerializer):
         fields = ("id",
                   "first_name",
                   "last_name",
-                  "email",
                   "avatar")
 
 
@@ -55,6 +54,12 @@ class CommentForExamSerializer(serializers.ModelSerializer):
                   "publish_time",
                   "edit_time")
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["publish_time"] = instance.publish_time.timestamp()
+        representation["edit_time"] = instance.edit_time.timestamp()
+        return representation
+
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -68,6 +73,25 @@ class CommentSerializer(serializers.ModelSerializer):
                   "publish_time",
                   "edit_time", )
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["publish_time"] = instance.publish_time.timestamp()
+        representation["edit_time"] = instance.edit_time.timestamp()
+        return representation
+
+
+class AnswerWithTaskSerializer(serializers.ModelSerializer):
+    """Серилайзер для добавления и удаления Answer"""
+    text = serializers.CharField(default="")
+    is_correct = serializers.BooleanField(default=False)
+
+    class Meta:
+        model = models.Answer
+        fields = ("id",
+                  "text",
+                  "is_correct",
+                  "task")
+
 
 class AnswerSerializer(serializers.ModelSerializer):
     """Серилайзер для Answer"""
@@ -78,6 +102,19 @@ class AnswerSerializer(serializers.ModelSerializer):
                   "is_correct")
 
 
+class TaskWithoutAnswersSerializer(serializers.ModelSerializer):
+    """Серилайзер для добавления и удаления Task"""
+    question = serializers.CharField(default="")
+    scores = serializers.IntegerField(default=1)
+
+    class Meta:
+        model = models.Task
+        fields = ("id",
+                  "question",
+                  "scores",
+                  "exam",)
+
+
 class TaskSerializer(serializers.ModelSerializer):
     """Сериалайзер для Task"""
     answers = AnswerSerializer(many=True)
@@ -86,11 +123,13 @@ class TaskSerializer(serializers.ModelSerializer):
         model = models.Task
         fields = ('id',
                   'question',
-                  'answers')
+                  'answers',
+                  "scores",
+                  )
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation["many_option"] = instance.answers.filter(is_correct=True).count()
+        representation["many_option"] = instance.answers.filter(is_correct=True).count() > 1
         return representation
 
 
@@ -107,6 +146,13 @@ class ExamListSerializer(serializers.ModelSerializer):
                   "subject",
                   "publish_time",
                   "edit_time",)
+
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["publish_time"] = instance.publish_time.timestamp()
+        representation["edit_time"] = instance.edit_time.timestamp()
+        return representation
 
 
 class ExamRetrieveSerializer(serializers.ModelSerializer):
@@ -126,9 +172,16 @@ class ExamRetrieveSerializer(serializers.ModelSerializer):
                   "edit_time",
                   "comments")
 
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation["count_task"] = instance.tasks.count()
+        representation["publish_time"] = instance.publish_time.timestamp()
+        representation["edit_time"] = instance.edit_time.timestamp()
+        max_scores = 0
+        for task in instance.tasks.all():
+            max_scores += task.scores
+        representation["max_scores"] = max_scores
         return representation
 
 
@@ -148,6 +201,17 @@ class ExamSerializer(serializers.ModelSerializer):
                   "publish_time",
                   "edit_time",
                   "tasks",)
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["count_task"] = instance.tasks.count()
+        representation["publish_time"] = instance.publish_time.timestamp()
+        representation["edit_time"] = instance.edit_time.timestamp()
+        max_scores = 0
+        for task in instance.tasks.all():
+            max_scores += task.scores
+        representation["max_scores"] = max_scores
+        return representation
 
     def create(self, validated_data):
         tasks = validated_data.pop("tasks")
@@ -182,84 +246,26 @@ class ExamSerializer(serializers.ModelSerializer):
                 answer.save()
         return instance
 
-# {
-#   "title": "string",
-#   "classroom": 0,
-#   "subject": "al",
-#   "description": "Описание",
-#   "tasks": [
-#      {
-#        "question": "Вопрос?",
-#        "answers": [
-#           {
-#              "text": "text",
-#              "is_correct": true
-#           }
-#         ]
-#      }
-#   ]
-# }
 
-# {
-#     "id": 1,
-#     "title": "Название",
-#     "classroom": 4,
-#     "subject": "en",
-#     "description": "123",
-#     "tasks": [
-#         {
-#             "id": 1,
-#             "question": "Как называется",
-#             "answers": [
-#                 {
-#                     "id": 1,
-#                     "text": "1",
-#                     "is_correct": true
-#                 },
-#                 {
-#                     "id": 2,
-#                     "text": "2",
-#                     "is_correct": false
-#                 },
-#                 {
-#                     "id": 3,
-#                     "text": "3",
-#                     "is_correct": true
-#                 }
-#             ]
-#         },
-#         {
-#             "id": 2,
-#             "question": "44444",
-#             "answers": [
-#                 {
-#                     "id": 4,
-#                     "text": "9999999999",
-#                     "is_correct": false
-#                 },
-#                 {
-#                     "id": 5,
-#                     "text": "7",
-#                     "is_correct": true
-#                 },
-#                 {
-#                     "id": 6,
-#                     "text": "8",
-#                     "is_correct": false
-#                 },
-#                 {
-#                     "id": 7,
-#                     "text": "9999999999999999",
-#                     "is_correct": false
-#                 }
-#             ]
-#         }
-#     ]
-# }
+class ExamMinimalSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Exam
+        fields = ('id',
+                  "title")
 
 
-class StatisticsSerializer(serializers.ModelSerializer):
+class ErrorSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.ErrorStatistics
+        fields = ("id", "question")
+
+
+class StatisticsReadSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    errors = ErrorSerializer(many=True)
+    exam = ExamMinimalSerializer(read_only=True, )
 
     class Meta:
         model = models.Statistics
@@ -267,7 +273,10 @@ class StatisticsSerializer(serializers.ModelSerializer):
                   "user",
                   "exam",
                   "grade",
-                  "total")
+                  "total",
+                  "start_time",
+                  "end_time",
+                  "errors")
 
     def create(self, validated_data):
         validated_data["grade"] = 0
@@ -278,3 +287,69 @@ class StatisticsSerializer(serializers.ModelSerializer):
         instance.grade = validated_data.get("grade", instance.grade)
         instance.save()
         return instance
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["start_time"] = instance.start_time.timestamp()
+        representation["end_time"] = instance.end_time.timestamp()
+        return representation
+
+
+class StatisticsPutSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    errors = ErrorSerializer(many=True)
+
+    class Meta:
+        model = models.Statistics
+        fields = ("id",
+                  "user",
+                  "exam",
+                  "grade",
+                  "total",
+                  "start_time",
+                  "end_time",
+                  "errors")
+
+    def update(self, instance, validated_data):
+        instance.grade = validated_data.get("grade", instance.grade)
+        errors = validated_data.get("errors")
+        for error in errors:
+            models.ErrorStatistics.objects.create(statistics=instance, **error)
+        instance.save()
+        return instance
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["start_time"] = instance.start_time.timestamp()
+        representation["end_time"] = instance.end_time.timestamp()
+        return representation
+
+
+class StatisticsPostSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    errors = serializers.SlugRelatedField(many=True,
+                                          read_only=True,
+                                          slug_field="question")
+
+    class Meta:
+        model = models.Statistics
+        fields = ("id",
+                  "user",
+                  "exam",
+                  "grade",
+                  "total",
+                  "start_time",
+                  "end_time",
+                  "errors")
+
+    def create(self, validated_data):
+        validated_data["grade"] = 0
+        stat = models.Statistics.objects.create(**validated_data)
+        return stat
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["start_time"] = instance.start_time.timestamp()
+        representation["end_time"] = instance.end_time.timestamp()
+        return representation
+

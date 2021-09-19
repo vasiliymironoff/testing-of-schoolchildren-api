@@ -1,8 +1,14 @@
 from rest_framework import viewsets
-from .models import Exam, Statistics, Profile, Comment
+from .models import Exam, Statistics, Profile, Comment, Task, Answer
 from rest_framework import mixins
 from .permissions import IsTeacherUser
 from . import serializers
+
+
+class ProfileViewSet(viewsets.GenericViewSet,
+                     mixins.UpdateModelMixin):
+    serializer_class = serializers.ProfileSerializer
+    queryset = Profile.objects.all()
 
 
 class ExamViewSet(viewsets.ReadOnlyModelViewSet):
@@ -44,14 +50,32 @@ class StatisticsViewSet(viewsets.GenericViewSet,
                         mixins.ListModelMixin,
                         mixins.CreateModelMixin,
                         mixins.UpdateModelMixin):
-    serializer_class = serializers.StatisticsSerializer
+    def get_serializer_class(self):
+        if self.action in ["list", "retrieve"]:
+            return serializers.StatisticsReadSerializer
+        elif self.action == "update":
+            return serializers.StatisticsPutSerializer
+        return serializers.StatisticsPostSerializer
 
     def get_queryset(self):
         return Statistics.objects.filter(user=self.request.user)
 
 
-class ProfileViewSet(viewsets.GenericViewSet,
-                     mixins.UpdateModelMixin):
-    serializer_class = serializers.ProfileSerializer
-    queryset = Profile.objects.all()
+class TaskViewSet(viewsets.GenericViewSet,
+                  mixins.CreateModelMixin,
+                  mixins.DestroyModelMixin):
+    permission_classes = [IsTeacherUser, ]
+    serializer_class = serializers.TaskWithoutAnswersSerializer
 
+    def get_queryset(self):
+        return Task.objects.filter(exam__author=self.request.user)
+
+
+class AnswerViewSet(viewsets.GenericViewSet,
+                    mixins.CreateModelMixin,
+                    mixins.DestroyModelMixin):
+    permission_classes = [IsTeacherUser, ]
+    serializer_class = serializers.AnswerWithTaskSerializer
+
+    def get_queryset(self):
+        return Answer.objects.filter(task__exam__author=self.request.user)
