@@ -20,7 +20,8 @@ class UserMeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.CustomUser
-        fields = ("first_name",
+        fields = ("id",
+                  "first_name",
                   "last_name",
                   "email",
                   "is_teacher",

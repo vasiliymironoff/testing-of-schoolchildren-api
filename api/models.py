@@ -173,7 +173,7 @@ class Comment(models.Model):
     edit_time = models.DateTimeField("Время редактирования", auto_now=True)
 
     class Meta:
-        ordering = ("-publish_time",)
+        ordering = ("publish_time",)
         verbose_name = "Комметарий"
         verbose_name_plural = "Комментарии"
 

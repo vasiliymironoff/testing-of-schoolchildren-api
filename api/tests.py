@@ -5,9 +5,6 @@ from rest_framework import status
 from .models import CustomUser
 from rest_framework.authtoken.models import Token
 
-# Создание, обновление, удаление аккаунта - AccountTest
-# Exam, Statistics - ExamTest
-# Comment - CommentTest
 
 def get_exam():
     return {
