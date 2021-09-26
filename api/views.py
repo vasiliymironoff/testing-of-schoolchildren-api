@@ -79,3 +79,11 @@ class AnswerViewSet(viewsets.GenericViewSet,
 
     def get_queryset(self):
         return Answer.objects.filter(task__exam__author=self.request.user)
+
+
+class ExamsMeViewSet(viewsets.GenericViewSet,
+                     mixins.ListModelMixin):
+    serializer_class = serializers.ExamListSerializer
+
+    def get_queryset(self):
+        return Exam.objects.filter(author=self.request.user)
