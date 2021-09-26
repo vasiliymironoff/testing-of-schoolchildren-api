@@ -96,6 +96,8 @@ class AnswerWithTaskSerializer(serializers.ModelSerializer):
 
 class AnswerSerializer(serializers.ModelSerializer):
     """Серилайзер для Answer"""
+    id = serializers.IntegerField(required=False)
+
     class Meta:
         model = models.Answer
         fields = ("id",
@@ -118,6 +120,7 @@ class TaskWithoutAnswersSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     """Сериалайзер для Task"""
+    id = serializers.IntegerField(required=False)
     answers = AnswerSerializer(many=True)
 
     class Meta:
@@ -148,7 +151,6 @@ class ExamListSerializer(serializers.ModelSerializer):
                   "publish_time",
                   "edit_time",)
 
-
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation["publish_time"] = instance.publish_time.timestamp()
@@ -173,7 +175,6 @@ class ExamRetrieveSerializer(serializers.ModelSerializer):
                   "edit_time",
                   "comments")
 
-
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation["count_task"] = instance.tasks.count()
@@ -188,7 +189,6 @@ class ExamRetrieveSerializer(serializers.ModelSerializer):
 
 class ExamSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
     tasks = TaskSerializer(many=True)
 
     class Meta:
@@ -226,25 +226,36 @@ class ExamSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         tasks_data = validated_data.pop("tasks")
-        tasks = instance.tasks.all()
-        tasks = list(tasks)
+        tasks = list(instance.tasks.all())
         instance.title = validated_data.get("title", instance.title)
         instance.classroom = validated_data.get("classroom", instance.classroom)
         instance.subject = validated_data.get("subject", instance.subject)
         instance.description = validated_data.get("description", instance.description)
         instance.save()
         for task_data in tasks_data:
-            task = tasks.pop(0)
             answers_data = task_data.pop("answers")
-            answers = task.answers.all()
-            answers = list(answers)
-            task.question = task_data.get("question", task.question)
-            task.save()
-            for answer_data in answers_data:
-                answer = answers.pop(0)
-                answer.text = answer_data.get("text", answer.text)
-                answer.is_correct = answer_data.get("is_correct", answer.is_correct)
-                answer.save()
+            task_id = task_data.get("id", None)
+            if task_id:
+                task = tasks.pop(0)
+                answers = task.answers.all()
+                answers = list(answers)
+                task.question = task_data.get("question", task.question)
+                task.scores = task_data.get("scores", task.scores)
+                task.save()
+
+                for answer_data in answers_data:
+                    answer_id = answer_data.get("id", None)
+                    if answer_id:
+                        answer = answers.pop(0)
+                        answer.text = answer_data.get("text", answer.text)
+                        answer.is_correct = answer_data.get("is_correct", answer.is_correct)
+                        answer.save()
+                    else:
+                        models.Answer.objects.create(task=task, **answer_data)
+            else:
+                new_task = models.Task.objects.create(exam=instance, **task_data)
+                for answer_data in answers_data:
+                    models.Answer.objects.create(task=new_task, **answer_data)
         return instance
 
 

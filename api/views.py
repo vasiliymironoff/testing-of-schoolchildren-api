@@ -62,7 +62,6 @@ class StatisticsViewSet(viewsets.GenericViewSet,
 
 
 class TaskViewSet(viewsets.GenericViewSet,
-                  mixins.CreateModelMixin,
                   mixins.DestroyModelMixin):
     permission_classes = [IsTeacherUser, ]
     serializer_class = serializers.TaskWithoutAnswersSerializer
@@ -72,7 +71,6 @@ class TaskViewSet(viewsets.GenericViewSet,
 
 
 class AnswerViewSet(viewsets.GenericViewSet,
-                    mixins.CreateModelMixin,
                     mixins.DestroyModelMixin):
     permission_classes = [IsTeacherUser, ]
     serializer_class = serializers.AnswerWithTaskSerializer
