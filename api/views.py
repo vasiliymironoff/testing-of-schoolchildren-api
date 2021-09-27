@@ -85,3 +85,9 @@ class ExamsMeViewSet(viewsets.GenericViewSet,
 
     def get_queryset(self):
         return Exam.objects.filter(author=self.request.user)
+
+
+class ExamsStatisticsViewSet(viewsets.GenericViewSet,
+                             mixins.RetrieveModelMixin):
+    serializer_class = serializers.ExamStatisticsSerializer
+    queryset = Exam.objects.all()

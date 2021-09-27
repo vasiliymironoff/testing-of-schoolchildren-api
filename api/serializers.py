@@ -365,3 +365,35 @@ class StatisticsPostSerializer(serializers.ModelSerializer):
         representation["end_time"] = instance.end_time.timestamp()
         return representation
 
+
+class ExamReadItemStatistics(serializers.ModelSerializer):
+    user = AuthorSerializer()
+    errors = ErrorSerializer(many=True)
+
+    class Meta:
+        model = models.Statistics
+        fields = ("id",
+                  "user",
+                  "grade",
+                  "total",
+                  "start_time",
+                  "end_time",
+                  "errors")
+
+    def create(self, validated_data):
+        validated_data["grade"] = 0
+        stat = models.Statistics.objects.create(**validated_data)
+        return stat
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["start_time"] = instance.start_time.timestamp()
+        representation["end_time"] = instance.end_time.timestamp()
+        return representation
+
+class ExamStatisticsSerializer(serializers.ModelSerializer):
+    statistics = ExamReadItemStatistics(read_only=True, many=True)
+
+    class Meta:
+        model = models.Exam
+        fields = ('statistics', )
